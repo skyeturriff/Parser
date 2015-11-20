@@ -32,6 +32,7 @@
 #include "buffer.h"
 #include "token.h"
 #include "table.h"
+#include "stable.h"
 
 #define DEBUG  /* for conditional processing */
 #undef  DEBUG
@@ -43,12 +44,12 @@
 
 /* Global variables */
 extern Buffer * str_LTBL;	/* String literal table */
-int line;					/* Current line number of the source code */
 extern int scerrnum;		/* Run-time error number */
+extern STD sym_table;		/* Symbol table */
+int line;					/* Current line number of the source code */
 
 /* Local(file) global variables */
 static Buffer *lex_buf;		/* Pointer to temporary lexeme buffer */
-
 
 /*******************************************************************************
 *    FUNCTION PROTOTYPES
@@ -534,22 +535,31 @@ Token aa_func02(char *lexeme) {
 *******************************************************************************/
 Token aa_func03(char *lexeme) {
 	Token t;
-	unsigned int i;
+	//unsigned int i;
 
 	//	printf("Lexeme: |%s|\n", lexeme);
 
 	/* Create token for SVID */
 	t.code = SVID_T;
-	for (i = 0; (i < strlen(lexeme)) && (i < VID_LEN); i++)
-		t.attribute.vid_lex[i] = lexeme[i];
+	t.attribute.vid_offset = st_install(sym_table, lexeme, 'S', line);
+
+	if (t.attribute.str_offset == -1) {
+		printf("Error: The Symbol Table is full - install failed\n");
+		st_store(sym_table);
+		exit(1);
+	}
+
+	//for (i = 0; (i < strlen(lexeme)) && (i < VID_LEN); i++)
+	//	t.attribute.vid_lex[i] = lexeme[i];
 
 	/* If lexeme is longer than VID_LEN, overwrite
 	the last char stored in attribute to '%' */
-	if (strlen(lexeme) > VID_LEN)
-		t.attribute.vid_lex[i - 1] = '%';
+	//if (strlen(lexeme) > VID_LEN)
+	//	t.attribute.vid_lex[i - 1] = '%';
 
 	/* Make C-type string */
-	t.attribute.vid_lex[i] = '\0';
+	//t.attribute.vid_lex[i] = '\0';
+
 	return t;
 }
 

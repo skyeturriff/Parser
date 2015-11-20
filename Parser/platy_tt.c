@@ -190,8 +190,8 @@ int main(int argc, char ** argv) {
 		printf("The input file %s %s\n", argv[1], "is not completely loaded.");
 		printf("Input file size: %ld\n", get_filesize(argv[1]));
 	}
-	/* pack and display the source buffer */
 
+	/* pack and display the source buffer */
 	if (b_pack(sc_buf)){
 		display(sc_buf);
 	}

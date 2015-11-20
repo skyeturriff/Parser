@@ -59,9 +59,11 @@ typedef union TokenAttribute {
 	int int_value;				/* integer literal attribute (value) */
 	int kwt_idx;				/* keyword index in the keyword table */
 	short str_offset;			/* sring literal offset from the beginning of */
-	/* the string literal buffer (str_LTBL->ca_head) */
+								/* the string literal buffer (str_LTBL->ca_head) */
 	float flt_value;			/* floating-point literal attribute (value) */
 	char vid_lex[VID_LEN + 1];	/* variable identifier token attribute */
+	int vid_offset;				/* variable identifier offset from the beginning of */
+								/* sym_table array of VID records (sym_table.pstvr)*/
 	char err_lex[ERR_LEN + 1];	/* error token attribite */
 } TA;
 

@@ -17,6 +17,19 @@
 #ifndef STABLE_H_
 #define STABLE_H_
 
+/* VID lexeme storage (plsBD) buffer parameters */
+#define CA_INIT_CAPACITY 3000		/* initial capacity */
+#define CA_INC_FACTOR 15			/* increment factor */
+
+/* Masks for manipulating status_field */
+#define DEFAULTZ	0x0000	/* 0000 0000 0000 0000 */
+#define DEFAULT		0xFFF8	/* 1111 1111 1111 1000 */
+#define DT_INT		0x0004	/* 0000 0000 0000 0100 */
+#define DT_FPL		0x0002	/* 0000 0000 0000 0010 */
+#define DT_STR		0x0006	/* 0000 0000 0000 0110 */
+#define SET_FLG		0x0001	/* 0000 0000 0000 0001 */
+#define CHK_FLG		0x0001	/* 0000 0000 0000 0001 */
+
 /* Declare Symbol Table Database (STDB) stucture*/
 
 typedef union InitialValue {

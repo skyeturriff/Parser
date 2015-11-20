@@ -20,7 +20,7 @@
 *******************************************************************************/
 
 /* Global variables */
-STD sym_table;			/* Symbol Table Descriptor */
+extern STD sym_table;			/* Symbol Table Descriptor */
 
 /* Local(file) global variables */
 
@@ -33,16 +33,39 @@ static void st_setsize(void);
 static void st_incoffset(void);
 
 /*******************************************************************************
-* Purpose:			
+* Purpose:			To allocate memory for one SymbolTableDescriptor (STD) and
+*					initialize members
 * Author:			Skye Turriff
-* History:			
-* Called functions:	
-* Parameters:		
-* Return value:		
+* History:			Version 1, 19 November 2015
+* Called functions:	malloc(), b_create()
+* Parameters:		int st_size, the initial size in number of elements of the
+*					array of STVR. Must be greater than 0.
+* Return value:		On success, a STD struct with its st_size member set to 
+*					st_size. Otherwise, a STD struct with its st_size set to 0.
 * Algorithm:		
 *******************************************************************************/
 STD st_create(int st_size) {
-	return sym_table;
+	/* Create one empty SymbolTableDescriptor with members initialized to 0 */
+	STD std = { 0 };
+
+	/* Check for invalid parameter */
+	if (st_size == 0)
+		return std;
+
+	/* Try to create array of SymbolTableVidRecord */
+	std.pstvr = (STVR*)malloc(sizeof(STVR)*st_size);
+	if (std.pstvr == NULL)
+		return std;
+
+	/* Try to create buffer for VID (lexeme) storage */
+	std.plsBD = b_create(CA_INIT_CAPACITY, CA_INC_FACTOR, 'f');
+	if (std.plsBD == NULL)
+		return std;
+
+	/* Allocation successful, set member st_size to st_size */
+	std.st_size = st_size;
+
+	return std;
 }
 
 /*******************************************************************************
@@ -55,7 +78,55 @@ STD st_create(int st_size) {
 * Algorithm:
 *******************************************************************************/
 int st_install(STD sym_table, char* lexeme, char type, int line) {
-	return 0;
+	int offset;		/* Offset into array of STVR */
+	STVR newSTVR;
+
+	/* Check for valid symbol table and type */
+	if (sym_table.st_size == 0 || (type != 'I' && type != 'F' && type != 'S'))
+		return R_FAIL_2;	
+
+	/* Check if lexeme already exists in symbol table */
+	if ((offset = st_lookup(sym_table, lexeme)) != -1)
+		return offset;
+
+	/* Ensure there is room in symbol table for a new record */
+	if (sym_table.st_offset < sym_table.st_size)
+		return R_FAIL_1;
+
+	/* Install new entry into STVR array */
+	newSTVR = sym_table.pstvr[sym_table.st_offset];
+
+	/* Set plex to location in sym_table lexeme storage where new VID starts */
+	newSTVR.plex = b_setmark(sym_table.plsBD, b_size(sym_table.plsBD));
+	for (; *lexeme; lexeme++)
+		b_addc(sym_table.plsBD, *lexeme);
+	b_addc(sym_table.plsBD, '\0');
+
+	/* CHECK IF R_FLAG WAS SET AFTER EACH CALL TO ADDC!! 
+	IF IT WAS MUST RESET ALL POINTERS */
+
+	newSTVR.o_line = line;
+
+	/* Initialize status_field */
+	newSTVR.status_field &= DEFAULTZ;
+	newSTVR.status_field |= DEFAULT;
+	if (type == 'I') {
+		newSTVR.status_field |= DT_INT;
+		newSTVR.i_value.int_val = 0;
+	}
+	else if (type == 'F') {
+		newSTVR.status_field |= DT_FPL;
+		newSTVR.i_value.fpl_val = 0;
+	}
+	else {
+		newSTVR.status_field |= DT_STR;
+		newSTVR.i_value.str_offset = -1;
+		newSTVR.status_field |= SET_FLG;
+	}
+
+	st_incoffset();	/* Increment offset into global sym_table STVR array */
+
+	return sym_table.st_offset - 1;
 }
 
 /*******************************************************************************
@@ -68,7 +139,7 @@ int st_install(STD sym_table, char* lexeme, char type, int line) {
 * Algorithm:
 *******************************************************************************/
 int st_lookup(STD sym_table, char* lexeme) {
-	return 0;
+	return -1;
 }
 
 /*******************************************************************************
@@ -120,7 +191,7 @@ char st_get_type(STD sym_table, int vid_offset) {
 * Algorithm:
 *******************************************************************************/
 void st_destroy(STD sym_table) {
-	return 0;
+
 }
 
 /*******************************************************************************
@@ -133,7 +204,18 @@ void st_destroy(STD sym_table) {
 * Algorithm:
 *******************************************************************************/
 int st_print(STD sym_table) {
-	return 0;
+	int i;
+
+	/* Check for valid symbol table and type */
+	if (sym_table.st_size == 0)
+		return R_FAIL_1;
+
+	printf("Symbol Table\n____________\n\n");
+	printf("Line Number    Variable Identifier\n");
+	for (i = 0; i < sym_table.st_offset; i++)
+		printf("%d          %s\n", sym_table.pstvr[i].o_line, sym_table.pstvr[i].plex);
+	
+	return i;
 }
 
 /*******************************************************************************
@@ -160,4 +242,28 @@ int st_store(STD sym_table) {
 *******************************************************************************/
 int st_sort(STD symb_table, char s_order) {
 	return 0;
+}
+
+/*******************************************************************************
+* Purpose:
+* Author:			Skye Turriff
+* History:
+* Called functions:
+* Parameters:
+* Return value:
+*******************************************************************************/
+static void st_setsize(void) {
+	sym_table.st_size = 0;
+}
+
+/*******************************************************************************
+* Purpose:
+* Author:			Skye Turriff
+* History:
+* Called functions:
+* Parameters:
+* Return value:
+*******************************************************************************/
+static void st_incoffset(void) {
+	sym_table.st_offset++;
 }
