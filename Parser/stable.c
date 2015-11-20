@@ -16,15 +16,6 @@
 #include "stable.h"
 
 /*******************************************************************************
-*    VARIABLES
-*******************************************************************************/
-
-/* Global variables */
-extern STD sym_table;			/* Symbol Table Descriptor */
-
-/* Local(file) global variables */
-
-/*******************************************************************************
 *    FUNCTION PROTOTYPES
 *******************************************************************************/
 
@@ -90,14 +81,14 @@ int st_install(STD sym_table, char* lexeme, char type, int line) {
 		return offset;
 
 	/* Ensure there is room in symbol table for a new record */
-	if (sym_table.st_offset < sym_table.st_size)
+	if (sym_table.st_offset >= sym_table.st_size)
 		return R_FAIL_1;
 
 	/* Install new entry into STVR array */
-	newSTVR = sym_table.pstvr[sym_table.st_offset];
+	//newSTVR = sym_table.pstvr[sym_table.st_offset];
 
 	/* Set plex to location in sym_table lexeme storage where new VID starts */
-	newSTVR.plex = b_setmark(sym_table.plsBD, b_size(sym_table.plsBD));
+	sym_table.pstvr[sym_table.st_offset].plex = b_setmark(sym_table.plsBD, b_size(sym_table.plsBD));
 	for (; *lexeme; lexeme++)
 		b_addc(sym_table.plsBD, *lexeme);
 	b_addc(sym_table.plsBD, '\0');
@@ -105,23 +96,23 @@ int st_install(STD sym_table, char* lexeme, char type, int line) {
 	/* CHECK IF R_FLAG WAS SET AFTER EACH CALL TO ADDC!! 
 	IF IT WAS MUST RESET ALL POINTERS */
 
-	newSTVR.o_line = line;
+	sym_table.pstvr[sym_table.st_offset].o_line = line;
 
 	/* Initialize status_field */
-	newSTVR.status_field &= DEFAULTZ;
-	newSTVR.status_field |= DEFAULT;
+	sym_table.pstvr[sym_table.st_offset].status_field &= DEFAULTZ;
+	sym_table.pstvr[sym_table.st_offset].status_field |= DEFAULT;
 	if (type == 'I') {
-		newSTVR.status_field |= DT_INT;
-		newSTVR.i_value.int_val = 0;
+		sym_table.pstvr[sym_table.st_offset].status_field |= DT_INT;
+		sym_table.pstvr[sym_table.st_offset].i_value.int_val = 0;
 	}
 	else if (type == 'F') {
-		newSTVR.status_field |= DT_FPL;
-		newSTVR.i_value.fpl_val = 0;
+		sym_table.pstvr[sym_table.st_offset].status_field |= DT_FPL;
+		sym_table.pstvr[sym_table.st_offset].i_value.fpl_val = 0;
 	}
 	else {
-		newSTVR.status_field |= DT_STR;
-		newSTVR.i_value.str_offset = -1;
-		newSTVR.status_field |= SET_FLG;
+		sym_table.pstvr[sym_table.st_offset].status_field |= DT_STR;
+		sym_table.pstvr[sym_table.st_offset].i_value.str_offset = -1;
+		sym_table.pstvr[sym_table.st_offset].status_field |= SET_FLG;
 	}
 
 	st_incoffset();	/* Increment offset into global sym_table STVR array */

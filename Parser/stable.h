@@ -53,6 +53,9 @@ typedef struct SybolTableDescriptor {
 	Buffer* plsBD;		/* Pointer to leme storage BufferDescriptor */
 }STD;
 
+/* Global variable */
+extern STD sym_table;			/* Symbol Table Descriptor */
+
 /* Function prototypes */
 
 STD st_create(int st_size);

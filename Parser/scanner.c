@@ -45,7 +45,6 @@
 /* Global variables */
 extern Buffer * str_LTBL;	/* String literal table */
 extern int scerrnum;		/* Run-time error number */
-extern STD sym_table;		/* Symbol table */
 int line;					/* Current line number of the source code */
 
 /* Local(file) global variables */
@@ -535,13 +534,21 @@ Token aa_func02(char *lexeme) {
 *******************************************************************************/
 Token aa_func03(char *lexeme) {
 	Token t;
+	char lex_8[VID_LEN];	/* Storage for shortened lexeme, if necessary*/
 	//unsigned int i;
 
 	//	printf("Lexeme: |%s|\n", lexeme);
 
 	/* Create token for SVID */
 	t.code = SVID_T;
-	t.attribute.vid_offset = st_install(sym_table, lexeme, 'S', line);
+
+	/* If lexeme is longer than VID_LEN, shorten it */
+	if (strlen(lexeme) > VID_LEN) {
+		strncpy(lex_8, lexeme, VID_LEN - 1);
+		lex_8[VID_LEN] = '\0'; /* Make C-type string */
+		t.attribute.vid_offset = st_install(sym_table, lex_8, 'S', line);
+	} 
+	else t.attribute.vid_offset = st_install(sym_table, lexeme, 'S', line);
 
 	if (t.attribute.str_offset == -1) {
 		printf("Error: The Symbol Table is full - install failed\n");
