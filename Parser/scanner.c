@@ -45,6 +45,7 @@
 /* Global variables */
 extern Buffer * str_LTBL;	/* String literal table */
 extern int scerrnum;		/* Run-time error number */
+
 int line;					/* Current line number of the source code */
 
 /* Local(file) global variables */
@@ -282,7 +283,7 @@ Token mlwpar_next_token(Buffer * sc_buf) {
 						t.attribute.err_lex[0] = '!';
 						t.attribute.err_lex[1] = '<';
 						t.attribute.err_lex[2] = '\0';
-						b_retract(sc_buf);	/* So that next read will recognize SEOF */
+						b_retract(sc_buf);	/* Next read must recognize SEOF */
 						return t;
 					}
 
@@ -487,8 +488,6 @@ int char_class(char c) {
 	return val;
 }
 
-/* Accepting functions */
-
 /*******************************************************************************
 * Purpose:
 * Author:			Skye Turriff
@@ -499,11 +498,10 @@ int char_class(char c) {
 * Algorithm:
 *******************************************************************************/
 Token aa_func02(char *lexeme) {
+	int kwt_index;				/* Index into keywors table */
+	char lex_8[VID_LEN + 1];	/* Storage for shortened lexeme, if necessary*/
+	char type;					/* Type of variable (float or int) */
 	Token t;
-	unsigned int i;
-	int kwt_index;
-
-	//	printf("Lexeme: |%s|\n", lexeme);
 
 	/* Check if token is a keyword */
 	kwt_index = iskeyword(lexeme);
@@ -515,11 +513,35 @@ Token aa_func02(char *lexeme) {
 
 	/* Create token for AVID */
 	t.code = AVID_T;
-	for (i = 0; (i < strlen(lexeme)) && (i < VID_LEN); i++)
-		t.attribute.vid_lex[i] = lexeme[i];
 
-	/* Make C-type string */
-	t.attribute.vid_lex[i] = '\0';
+	/* Determine type */
+	if (*lexeme == 'i' || *lexeme == 'o' || *lexeme == 'd' || *lexeme == 'w')
+		type = 'I';
+	else type = 'F';
+
+	/* If lexeme is longer than VID_LEN, shorten it */
+	if (strlen(lexeme) > VID_LEN) {
+		strncpy(lex_8, lexeme, VID_LEN);
+		lex_8[VID_LEN] = '\0';		/* Make C-type string */
+		t.attribute.vid_offset = st_install(sym_table, lex_8, type, line);
+	}
+	else t.attribute.vid_offset = st_install(sym_table, lexeme, type, line);
+
+	/* Check for successful install */
+	if (t.attribute.str_offset == -1) {
+		printf("Error: The Symbol Table is full - install failed\n");
+		st_store(sym_table);
+		exit(1);
+	}
+
+//	/* Create token for AVID */
+//	t.code = AVID_T;
+//	for (i = 0; (i < strlen(lexeme)) && (i < VID_LEN); i++)
+//		t.attribute.vid_lex[i] = lexeme[i];
+//
+//	/* Make C-type string */
+//	t.attribute.vid_lex[i] = '\0';
+
 	return t;
 }
 
@@ -534,10 +556,7 @@ Token aa_func02(char *lexeme) {
 *******************************************************************************/
 Token aa_func03(char *lexeme) {
 	Token t;
-	char lex_8[VID_LEN];	/* Storage for shortened lexeme, if necessary*/
-	//unsigned int i;
-
-	//	printf("Lexeme: |%s|\n", lexeme);
+	char lex_8[VID_LEN+1];	/* Storage for shortened lexeme, if necessary*/
 
 	/* Create token for SVID */
 	t.code = SVID_T;
@@ -545,27 +564,18 @@ Token aa_func03(char *lexeme) {
 	/* If lexeme is longer than VID_LEN, shorten it */
 	if (strlen(lexeme) > VID_LEN) {
 		strncpy(lex_8, lexeme, VID_LEN - 1);
-		lex_8[VID_LEN] = '\0'; /* Make C-type string */
+		lex_8[VID_LEN - 1] = '%';	/* Append SVID terminator */
+		lex_8[VID_LEN] = '\0';		/* Make C-type string */
 		t.attribute.vid_offset = st_install(sym_table, lex_8, 'S', line);
 	} 
 	else t.attribute.vid_offset = st_install(sym_table, lexeme, 'S', line);
 
+	/* Check for successful install */
 	if (t.attribute.str_offset == -1) {
 		printf("Error: The Symbol Table is full - install failed\n");
 		st_store(sym_table);
 		exit(1);
 	}
-
-	//for (i = 0; (i < strlen(lexeme)) && (i < VID_LEN); i++)
-	//	t.attribute.vid_lex[i] = lexeme[i];
-
-	/* If lexeme is longer than VID_LEN, overwrite
-	the last char stored in attribute to '%' */
-	//if (strlen(lexeme) > VID_LEN)
-	//	t.attribute.vid_lex[i - 1] = '%';
-
-	/* Make C-type string */
-	//t.attribute.vid_lex[i] = '\0';
 
 	return t;
 }
@@ -582,8 +592,6 @@ Token aa_func03(char *lexeme) {
 Token aa_func05(char *lexeme) {
 	Token t;
 	long value;
-
-	//	printf("Lexeme from aa_func05: |%s|\n", lexeme);
 
 	if (strlen(lexeme) > INL_LEN)
 		return aa_table[ES](lexeme);
@@ -638,8 +646,6 @@ Token aa_func08(char *lexeme) {
 Token aa_func10(char *lexeme) {
 	Token t;
 	long value;
-
-	//	printf("Lexeme from aa_func10: |%s|\n", lexeme);
 
 	if (strlen(lexeme) > INL_LEN + 1)
 		return aa_table[ES](lexeme);
@@ -701,8 +707,6 @@ Token aa_func12(char *lexeme) {
 Token aa_func13(char *lexeme) {
 	return aa_table[ES](lexeme);
 }
-
-/* Additional "helper" functions */
 
 /*******************************************************************************
 * Purpose:

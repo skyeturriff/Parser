@@ -144,12 +144,15 @@ pBuffer b_addc(pBuffer const pBD, char symbol) {
 	char* temp_cb_head = (char *)realloc(pBD->cb_head, new_capacity);
 	if (temp_cb_head == NULL)
 		return NULL;
+
 	/* Check if memory location was changed */
 	if (temp_cb_head != pBD->cb_head) {
 		pBD->r_flag = SET_R_FLAG;
 		pBD->cb_head = temp_cb_head;
 	}
+	else pBD->r_flag = 0;
 	temp_cb_head = NULL;
+
 	/* Add symbol and update capacity */
 	pBD->cb_head[pBD->addc_offset++] = symbol;
 	pBD->capacity = new_capacity;

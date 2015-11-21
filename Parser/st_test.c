@@ -75,7 +75,7 @@ int main(int argc, char ** argv) {
     }
 
     /*open source file */
-    if ((fi = fopen("ass3m.pls", "r")) == NULL){
+    if ((fi = fopen("name%.txt", "r")) == NULL){
         err_printf("%s", "stable: Cannot open file");
         exit(1);
     }

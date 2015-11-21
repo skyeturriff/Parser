@@ -17,21 +17,27 @@
 #ifndef STABLE_H_
 #define STABLE_H_
 
+/* Constant definitions */
+#define ERR_FAIL1	-1	/* function execution failed or conditions not met */
+#define ERR_FAIL2	-2	/* sym_table.st_size == 0 or bad parameters*/
+
 /* VID lexeme storage (plsBD) buffer parameters */
-#define CA_INIT_CAPACITY 3000		/* initial capacity */
-#define CA_INC_FACTOR 15			/* increment factor */
+#define CA_INIT_CAPACITY 1		/* initial capacity */
+#define CA_INC_FACTOR 1			/* increment factor */
 
 /* Masks for manipulating status_field */
-#define DEFAULTZ	0x0000	/* 0000 0000 0000 0000 */
-#define DEFAULT		0xFFF8	/* 1111 1111 1111 1000 */
-#define DT_INT		0x0004	/* 0000 0000 0000 0100 */
-#define DT_FPL		0x0002	/* 0000 0000 0000 0010 */
-#define DT_STR		0x0006	/* 0000 0000 0000 0110 */
-#define SET_FLG		0x0001	/* 0000 0000 0000 0001 */
-#define CHK_FLG		0x0001	/* 0000 0000 0000 0001 */
+#define DEFAULTZ    0x0000  /* 0000 0000 0000 0000 */
+#define DEFAULT     0xFFF8  /* 1111 1111 1111 1000 */
+#define DT_INT      0x0004  /* 0000 0000 0000 0100 */
+#define DT_FPL      0x0002  /* 0000 0000 0000 0010 */
+#define DT_STR      0x0006  /* 0000 0000 0000 0110 */
+#define RESET_DT    0x0007  /* 0000 0000 0000 0111 */
+#define UPDATE_FPL  0xFFFB  /* 1111 1111 1111 1011 */
+#define UPDATE_INT  0xFFFD  /* 1111 1111 1111 1101 */
+#define SET_FLG     0x0001  /* 0000 0000 0000 0001 */
+#define CHK_FLG     0x0001  /* 0000 0000 0000 0001 */
 
-/* Declare Symbol Table Database (STDB) stucture*/
-
+/* Declare Symbol Table Database (STDB) stuctures */
 typedef union InitialValue {
 	int int_val;		/* Integer variable initial value */
 	float fpl_val;		/* Floating-point variable initial value */
@@ -54,10 +60,9 @@ typedef struct SybolTableDescriptor {
 }STD;
 
 /* Global variable */
-extern STD sym_table;			/* Symbol Table Descriptor */
+extern STD sym_table;	/* Symbol Table Descriptor */
 
 /* Function prototypes */
-
 STD st_create(int st_size);
 int st_install(STD sym_table, char* lexeme, char type, int line);
 int st_lookup(STD sym_table, char* lexeme);
@@ -67,6 +72,6 @@ char st_get_type(STD sym_table, int vid_offset);
 void st_destroy(STD sym_table);
 int st_print(STD sym_table);
 int st_store(STD sym_table);
-int st_sort(STD symb_table, char s_order);
+int st_sort(STD sym_table, char s_order);
 
 #endif
