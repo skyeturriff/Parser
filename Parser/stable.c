@@ -200,9 +200,9 @@ int st_lookup(STD sym_table, char* lexeme) {
 *					or -2 on bad parameters.
 * Algorithm:		If invalid symbol table or parameters, return -2. If entry
 *					is a string, or has already been updated, return -1. Else,
-*					set status_field bits 0, 1, and 2. If updating type to float
-*					turn off bit 2. Else turn off bit 1 to update to int. Return
-*					offset of updated entry.
+*					set status_field bits 0, 1 and 2. If updating type to 
+*					float turn off bit 2. Else turn off bit 1 to update to int.
+*					Return offset of updated entry.
 *******************************************************************************/
 int st_update_type(STD sym_table, int vid_offset, char v_type) {
 	/* Check for valid symbol table */
@@ -214,11 +214,12 @@ int st_update_type(STD sym_table, int vid_offset, char v_type) {
 		|| (sym_table.pstvr[vid_offset].status_field & DT_STR))
 		return ERR_FAIL1;
 
-	sym_table.pstvr[vid_offset].status_field |= RESET_DT;
-	if (v_type == 'F')	/* Update to float */
-		sym_table.pstvr[vid_offset].status_field &= UPDATE_FPL;
-	else	/* Update to integer */
-		sym_table.pstvr[vid_offset].status_field &= UPDATE_INT;
+	/* Reset data type bits, set bits for type and update flag */
+	sym_table.pstvr[vid_offset].status_field |= (DT_STR | SET_FLG);
+	if (v_type == 'F')
+		sym_table.pstvr[vid_offset].status_field &= ~DT_INT;
+	else sym_table.pstvr[vid_offset].status_field &= ~DT_FPL;
+
 	return vid_offset;
 }
 
@@ -230,52 +231,64 @@ int st_update_type(STD sym_table, int vid_offset, char v_type) {
 * Parameters:		STD sym_table struct with valid size (>0)
 *					int vid_offset of entry in STVR array
 *					InitialValue i_value to update to
-* Return value:		If bad parameters returns -2. On success returns vid_offset,
-*					else -1 on failure to update
+* Return value:		If bad parameters returns -1, On success returns vid_offset
 *******************************************************************************/
-int std_update_value(STD sym_table, int vid_offset, InitialValue i_value) {
-	/* Check for valid symbol table */
-	if (sym_table.st_size == 0) return ERR_FAIL2;
+int st_update_value(STD sym_table, int vid_offset, InitialValue i_value) {
+	/* Check for valid symbol table and i_value
+	(must be 0 or -1 in this implementation) */
+	if (sym_table.st_size == 0)
+		return ERR_FAIL1;
 
-	return ERR_FAIL1;	/* On failure to update value */
+	sym_table.pstvr[vid_offset].i_value = i_value;
+
+	return vid_offset;
 }
 
 /*******************************************************************************
-* Purpose:
+* Purpose:			Returns the data type of the entry specified by vid_offset
 * Author:			Skye Turriff
-* History:
-* Called functions:
-* Parameters:
-* Return value:
-* Algorithm:
+* History:			Version 1, 21 November 2015
+* Called functions:	None
+* Parameters:		STD sym_table struct with valid size (>0)
+*					int vid_offset of entry in STVR array
+* Return value:		char 'F' for float, 'I' for integer, or 'S' for string, or
+*					-1 on failure. Returns -2 on bad parameters.
 *******************************************************************************/
 char st_get_type(STD sym_table, int vid_offset) {
 	/* Check for valid symbol table */
 	if (sym_table.st_size == 0) return ERR_FAIL2;
 
-	return ERR_FAIL1; /* On failure to retrieve type */
+	if (sym_table.pstvr[vid_offset].status_field & DT_STR) return 'S';
+	if (sym_table.pstvr[vid_offset].status_field & DT_INT) return 'I';
+	if (sym_table.pstvr[vid_offset].status_field & DT_FPL) return 'F';
+
+	return ERR_FAIL1;
 }
 
 /*******************************************************************************
-* Purpose:
+* Purpose:			Frees memory occupied by symbol table dynamic areas and sets
+*					global symbol table size to 0.
 * Author:			Skye Turriff
-* History:
-* Called functions:
-* Parameters:
-* Return value:
-* Algorithm:
+* History:			Version 1, 21 November 2015
+* Called functions:	b_destroy(), free(), st_setsize()
+* Parameters:		STD sym_table struct
+* Return value:		None
 *******************************************************************************/
 void st_destroy(STD sym_table) {
-
+	if (sym_table.st_size != 0) {
+		b_destroy(sym_table.plsBD);
+		free(sym_table.pstvr);
+		st_setsize();
+	}
 }
 
 /*******************************************************************************
-* Purpose:
+* Purpose:			Prints the contents of the symbol table to standard output
 * Author:			Skye Turriff
-* History:
+* History:			Version 1, 21 November 2015
 * Called functions:
-* Parameters:
-* Return value:
+* Parameters:		STD sym_table struct with valid st_size (>0)
+* Return value:		On success, the number of records printed, 
 * Algorithm:
 *******************************************************************************/
 int st_print(STD sym_table) {
@@ -287,7 +300,7 @@ int st_print(STD sym_table) {
 	printf("\nSymbol Table\n____________\n\n");
 	printf("Line Number Variable Identifier\n");
 	for (i = 0; i < sym_table.st_offset; i++)
-		printf("%2.11d %s\n", sym_table.pstvr[i].o_line, sym_table.pstvr[i].plex);
+		printf("%10d %-2s\n", sym_table.pstvr[i].o_line, sym_table.pstvr[i].plex);
 	
 	return i;
 }

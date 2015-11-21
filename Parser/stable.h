@@ -31,11 +31,8 @@
 #define DT_INT      0x0004  /* 0000 0000 0000 0100 */
 #define DT_FPL      0x0002  /* 0000 0000 0000 0010 */
 #define DT_STR      0x0006  /* 0000 0000 0000 0110 */
-#define RESET_DT    0x0007  /* 0000 0000 0000 0111 */
-#define UPDATE_FPL  0xFFFB  /* 1111 1111 1111 1011 */
-#define UPDATE_INT  0xFFFD  /* 1111 1111 1111 1101 */
-#define SET_FLG     0x0001  /* 0000 0000 0000 0001 */
 #define CHK_FLG     0x0001  /* 0000 0000 0000 0001 */
+#define SET_FLG     0x0001  /* 0000 0000 0000 0001 */
 
 /* Declare Symbol Table Database (STDB) stuctures */
 typedef union InitialValue {
@@ -67,7 +64,7 @@ STD st_create(int st_size);
 int st_install(STD sym_table, char* lexeme, char type, int line);
 int st_lookup(STD sym_table, char* lexeme);
 int st_update_type(STD sym_table, int vid_offset, char v_type);
-int std_update_value(STD sym_table, int vid_offset, InitialValue i_value);
+int st_update_value(STD sym_table, int vid_offset, InitialValue i_value);
 char st_get_type(STD sym_table, int vid_offset);
 void st_destroy(STD sym_table);
 int st_print(STD sym_table);
