@@ -59,6 +59,7 @@ int main(int argc, char ** argv) {
     int loadsize = 0;               /* the size of the file loaded in the buffer */
     int st_def_size = ST_DEF_SIZE;  /* Symbol Table default size */
     char sort_st = 0;               /* Symbol Table sort switch */
+	char newType;					/* For testing st_update_type() */
 
     /* create a source code input buffer - multiplicative mode */
     sc_buf = b_create(INIT_CAPACITY, INC_FACTOR, 'm');
@@ -75,7 +76,7 @@ int main(int argc, char ** argv) {
     }
 
     /*open source file */
-    if ((fi = fopen("name%.txt", "r")) == NULL){
+    if ((fi = fopen("ass3m.pls", "r")) == NULL){
         err_printf("%s", "stable: Cannot open file");
         exit(1);
     }
@@ -139,8 +140,43 @@ int main(int argc, char ** argv) {
     }
 
     /*** TEST BED for type and update functions ***/
+	/* Using file ass3m.pls... test st_update_type() int to float */
+	printf("Updating %s to float, current type: %c\n", sym_table.pstvr[0].plex,
+		st_get_type(sym_table, 0));
+	st_update_type(sym_table, 0, 'F');
+	newType = st_get_type(sym_table, 0);
+	printf("Updated %s type: %c\n", sym_table.pstvr[0].plex, newType);
+
+	/* Using file ass3m.pls... test st_update_type() same variable again */
+	printf("Updating %s to int, current type: %c\n", sym_table.pstvr[0].plex,
+		st_get_type(sym_table, 0));
+	st_update_type(sym_table, 0, 'I');
+	newType = st_get_type(sym_table, 0);
+	printf("Updated %s type: %c\n", sym_table.pstvr[0].plex, newType);
+
+	/* Using file ass3m.pls... test st_update_type() float to int */
+	printf("Updating %s to int, current type: %c\n", sym_table.pstvr[7].plex,
+		st_get_type(sym_table, 7));
+	st_update_type(sym_table, 7, 'I');
+	newType = st_get_type(sym_table, 7);
+	printf("Updated %s type: %c\n", sym_table.pstvr[7].plex, newType);
+
+	/* Using file ass3m.pls... test st_update_type() int to string */
+	printf("Updating %s to string, current type: %c\n", sym_table.pstvr[1].plex,
+		st_get_type(sym_table, 1));
+	st_update_type(sym_table, 1, 'S');
+	newType = st_get_type(sym_table, 1);
+	printf("Updated %s type: %c\n", sym_table.pstvr[1].plex, newType);
+
+	/* Using file ass3m.pls... test st_update_type() string */
+	printf("Updating %s to int, current type: %c\n", sym_table.pstvr[8].plex,
+		st_get_type(sym_table, 8));
+	st_update_type(sym_table, 8, 'I');
+	newType = st_get_type(sym_table, 8);
+	printf("Updated %s type: %c\n", sym_table.pstvr[8].plex, newType);
 
     /*** TEST BED for bonus ***/
+	st_sort(sym_table, 'A');
 
     return (0); /* same effect as exit(EXIT_SUCCESS) */
 }

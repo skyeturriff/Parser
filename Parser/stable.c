@@ -12,9 +12,17 @@
 *					st_store(), st_sort()
 *******************************************************************************/
 
+/* The #define _CRT_SECURE_NO_WARNINGS should be used in MS Visual Studio projects
+* to suppress the warnings about using "unsafe" functions like fopen()
+* and standard sting library functions defined in string.h.
+* The define does not have any effect in other compiler projects.
+*/
+#define _CRT_SECURE_NO_WARNINGS
+
 #include "buffer.h"
 #include "stable.h"
 #include <string.h>
+#include <stdlib.h>
 
 /*******************************************************************************
 *    FUNCTION PROTOTYPES
@@ -23,6 +31,7 @@
 /* Static(local) functions */
 static void st_setsize(void);
 static void st_incoffset(void);
+static int comparelex(const void*, const void*);
 
 /*******************************************************************************
 * Purpose:			To allocate memory for one SymbolTableDescriptor (STD) and
@@ -47,24 +56,21 @@ STD st_create(int st_size) {
 	/* Create one empty SymbolTableDescriptor */
 	STD std = { 0 };
 
-	/* Check for invalid parameter */
-	if (st_size == 0) return std;
+	/* Invalid parameter */
+	if (st_size == 0) 
+		return std;
 
 	/* Try to create array of SymbolTableVidRecord */
 	if ((std.pstvr = (STVR*)malloc(sizeof(STVR)*st_size)) == NULL)
 		return std;
-//	if (std.pstvr == NULL)
-//		return std;
 
 	/* Try to create buffer for VID (lexeme) storage */
 	if ((std.plsBD = b_create(CA_INIT_CAPACITY, CA_INC_FACTOR, 'a')) == NULL) {
 		free(std.pstvr);
 		return std;
 	}
-//	if (std.plsBD == NULL)
-//		return std;
 
-	/* Allocation successful, set member st_size to st_size */
+	/* Set member st_size */
 	std.st_size = st_size;
 
 	return std;
@@ -100,16 +106,16 @@ int st_install(STD sym_table, char* lexeme, char type, int line) {
 	char* tplex;	/* Used to iterate through lexeme storage buffer */
 	int i;			/* Loop counter for iteration through STVR array */
 
-	/* Check for valid symbol table and type */
-	if (sym_table.st_size == 0 || (type != 'I' && type != 'F' && type != 'S'))
+	/* Check for valid symbol table */
+	if (sym_table.st_size == 0) 
 		return ERR_FAIL2;	
 
 	/* Check if lexeme already exists */
-	if ((offset = st_lookup(sym_table, lexeme)) != ERR_FAIL1)
+	if ((offset = st_lookup(sym_table, lexeme)) != ERR_FAIL1) 
 		return offset;
 
 	/* Ensure there is room for a new record */
-	if (sym_table.st_offset >= sym_table.st_size)
+	if (sym_table.st_offset >= sym_table.st_size) 
 		return ERR_FAIL1;
 
 	/* Set plex for new VID record */
@@ -154,8 +160,8 @@ int st_install(STD sym_table, char* lexeme, char type, int line) {
 	}
 	else { /* string */
 		sym_table.pstvr[sym_table.st_offset].status_field |= DT_STR;
-		sym_table.pstvr[sym_table.st_offset].i_value.str_offset = -1;
 		sym_table.pstvr[sym_table.st_offset].status_field |= SET_FLG;
+		sym_table.pstvr[sym_table.st_offset].i_value.str_offset = -1;
 	}
 
 	st_incoffset();	/* Increment offset into STVR array of global sym_table */
@@ -200,25 +206,25 @@ int st_lookup(STD sym_table, char* lexeme) {
 *					or -2 on bad parameters.
 * Algorithm:		If invalid symbol table or parameters, return -2. If entry
 *					is a string, or has already been updated, return -1. Else,
-*					set status_field bits 0, 1 and 2. If updating type to 
-*					float turn off bit 2. Else turn off bit 1 to update to int.
-*					Return offset of updated entry.
+*					set status_field bits 0, 1 and 2 to 0. If updating type to 
+*					float turn on bit 1. Else turn on bit 2 to update to int.
+*					Set update flag. Return offset of updated entry.
 *******************************************************************************/
 int st_update_type(STD sym_table, int vid_offset, char v_type) {
 	/* Check for valid symbol table */
-	if (sym_table.st_size == 0 || (v_type != 'F' && v_type != 'I'))
+	if (sym_table.st_size == 0)
 		return ERR_FAIL2;
 
-	/* Can't update type more than once or if string */
+	/* Can't update type more than once or from/to string */
 	if ((sym_table.pstvr[vid_offset].status_field & CHK_FLG)
-		|| (sym_table.pstvr[vid_offset].status_field & DT_STR))
+		|| (st_get_type(sym_table, vid_offset) == 'S')
+		|| (v_type == 'S'))
 		return ERR_FAIL1;
 
-	/* Reset data type bits, set bits for type and update flag */
-	sym_table.pstvr[vid_offset].status_field |= (DT_STR | SET_FLG);
-	if (v_type == 'F')
-		sym_table.pstvr[vid_offset].status_field &= ~DT_INT;
-	else sym_table.pstvr[vid_offset].status_field &= ~DT_FPL;
+	/* Reset data type bits, set bits for new type and update flag */
+	sym_table.pstvr[vid_offset].status_field &= DEFAULT;
+	sym_table.pstvr[vid_offset].status_field |= 
+		((v_type == 'F' ? DT_FPL : DT_INT) | SET_FLG);
 
 	return vid_offset;
 }
@@ -255,14 +261,21 @@ int st_update_value(STD sym_table, int vid_offset, InitialValue i_value) {
 *					-1 on failure. Returns -2 on bad parameters.
 *******************************************************************************/
 char st_get_type(STD sym_table, int vid_offset) {
+	unsigned short status_field = sym_table.pstvr[vid_offset].status_field;
+
 	/* Check for valid symbol table */
-	if (sym_table.st_size == 0) return ERR_FAIL2;
+	if (sym_table.st_size == 0) 
+		return ERR_FAIL2;
 
-	if (sym_table.pstvr[vid_offset].status_field & DT_STR) return 'S';
-	if (sym_table.pstvr[vid_offset].status_field & DT_INT) return 'I';
-	if (sym_table.pstvr[vid_offset].status_field & DT_FPL) return 'F';
-
-	return ERR_FAIL1;
+	/* Extract data type */
+	if ((status_field & DT_INT) && (status_field & DT_FPL))
+		return 'S';
+	if (status_field & DT_INT)
+		return 'I';
+	if (status_field & DT_FPL)
+		return 'F';
+	
+	return ERR_FAIL1;	/* Invalid datatype */
 }
 
 /*******************************************************************************
@@ -289,48 +302,98 @@ void st_destroy(STD sym_table) {
 * Called functions:
 * Parameters:		STD sym_table struct with valid st_size (>0)
 * Return value:		On success, the number of records printed, 
-* Algorithm:
 *******************************************************************************/
 int st_print(STD sym_table) {
 	int i;
 
 	/* Check for valid symbol table */
-	if (sym_table.st_size == 0) return R_FAIL_2;
+	if (sym_table.st_size == 0) 
+		return R_FAIL_2;
 
 	printf("\nSymbol Table\n____________\n\n");
 	printf("Line Number Variable Identifier\n");
 	for (i = 0; i < sym_table.st_offset; i++)
-		printf("%10d %-2s\n", sym_table.pstvr[i].o_line, sym_table.pstvr[i].plex);
+		printf("%2d          %s\n",	sym_table.pstvr[i].o_line, 
+		sym_table.pstvr[i].plex);
 	
 	return i;
 }
 
 /*******************************************************************************
-* Purpose:
+* Purpose:			Stores the contents of the symbol table to file $stable.ste
 * Author:			Skye Turriff
-* History:
-* Called functions:
-* Parameters:
-* Return value:
-* Algorithm:
+* History:			Version 1, 21 November 2015
+* Called functions:	fopen(), fprintf(), st_get_type(), printf()
+* Parameters:		STD sym_table with valid st_size (>0)
+* Return value:		On success, the number of records printed, else -1
 *******************************************************************************/
 int st_store(STD sym_table) {
-	/* Check for valid symbol table */
-	if (sym_table.st_size == 0) return ERR_FAIL2;
+	FILE* fp;	/* Output file handle */
+	char type;	/* Type of variable */
+	int i; 
 
-	return ERR_FAIL1;	/* On failure to store table */
+	/* Check for valid symbol table and fp */
+	if (sym_table.st_size == 0) 
+		return ERR_FAIL2;
+	if ((fp = fopen("$stable.ste", "wt")) == NULL)
+		return ERR_FAIL1;
+
+	/* Store symbol table contents in file */
+	fprintf(fp, "%d", sym_table.st_size);
+	for (i = 0; i < sym_table.st_offset; i++) {
+		type = st_get_type(sym_table, i);
+		fprintf(fp, " %hX %d %s %d %s", 
+			sym_table.pstvr[i].status_field,	/* status field */
+			strlen(sym_table.pstvr[i].plex),	/* lexeme length */
+			sym_table.pstvr[i].plex,			/* lexeme */
+			sym_table.pstvr[i].o_line,			/* line number */
+			(type == 'S' ? "-1" :				/* -1 if string, else */
+			(type == 'I' ? "0" : "0.00")));		/* 0 if int, else 0.00 */
+	}
+
+	fclose(fp);
+	printf("Symbol Table stored.\n");
+
+	return i;	/* Numer of records stored */
 }
 
 /*******************************************************************************
-* Purpose:
+* Purpose:			This function is not currently implemented
 * Author:			Skye Turriff
-* History:
-* Called functions:
-* Parameters:
-* Return value:
-* Algorithm:
+* History:			Version 1, 21 November 2015
+* Called functions:	malloc(), calloc(), strlen(), sizeof(), printf(), 
+*					comparelex(), qsort()
+* Parameters:		STD sym_table struct and char s_order, the order to sort
+* Return value:		zero in this implementation
+* Algorithm:		TBD
+* Notes:			Will generate warnings for unreferenced parameters
 *******************************************************************************/
 int st_sort(STD sym_table, char s_order) {
+	/*
+	char** lexemes;
+	int i;
+
+	lexemes = (char**)malloc(sym_table.st_offset*sizeof(char*));
+
+	for (i = 0; i < sym_table.st_offset; i++) {
+		lexemes[i] = (char*)calloc(strlen((sym_table.pstvr[i].plex) + 1), sizeof(char));
+		strcpy(lexemes[i], sym_table.pstvr[i].plex);
+	}
+
+	printf("Before sorting:\n");
+	for (i = 0; i < sym_table.st_offset; i++)
+		printf("%s\n", lexemes[i]);
+
+	for (i = 0; i < sym_table.st_offset - 1; i++)
+		comparelex(lexemes[i], lexemes[i+1]);
+
+	qsort(lexemes, sym_table.st_offset, sizeof(char*), comparelex);
+
+	printf("After sorting:\n");
+	for (i = 0; i < sym_table.st_offset; i++)
+		printf("%s\n", lexemes[i]);
+	*/
+
 	return 0;
 }
 
@@ -356,4 +419,35 @@ static void st_setsize(void) {
 *******************************************************************************/
 static void st_incoffset(void) {
 	sym_table.st_offset++;
+}
+
+/*******************************************************************************
+* Purpose:			This function is not currently implemented. 
+* Author:			Skye Turriff
+* History:			Version 1, 21 November 2015
+* Called functions: None
+* Parameters:		lex1 and lex2, strings to be compared
+* Return value:		Zero in this implementation
+* Algorithm:		TBD
+* Notes:			Will generate warnings for unreferenced parameters
+*******************************************************************************/
+int comparelex(const void* lex1, const void* lex2) {
+	/*
+	char* a = (char*)lex1;
+	char* b = (char*)lex2;
+
+	while (*a) {
+		if (*a == *b) {
+			a++;
+			b++;
+		}
+		else if ((*b == '\0') || (*b < *a)) return 1;
+		else if (*a < *b) return -1;
+	}
+
+	if (*b != '\0') return -1;
+	else return 0;
+	*/
+
+	return 0;
 }

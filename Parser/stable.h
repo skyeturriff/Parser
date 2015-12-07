@@ -19,7 +19,7 @@
 
 /* Constant definitions */
 #define ERR_FAIL1	-1	/* function execution failed or conditions not met */
-#define ERR_FAIL2	-2	/* sym_table.st_size == 0 or bad parameters*/
+#define ERR_FAIL2	-2	/* sym_table.st_size == 0 */
 
 /* VID lexeme storage (plsBD) buffer parameters */
 #define CA_INIT_CAPACITY 1		/* initial capacity */

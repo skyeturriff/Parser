@@ -528,19 +528,11 @@ Token aa_func02(char *lexeme) {
 	else t.attribute.vid_offset = st_install(sym_table, lexeme, type, line);
 
 	/* Check for successful install */
-	if (t.attribute.str_offset == -1) {
-		printf("Error: The Symbol Table is full - install failed\n");
+	if (t.attribute.str_offset == ERR_FAIL1) {
+		printf("\nError: The Symbol Table is full - install failed.\n\n");
 		st_store(sym_table);
 		exit(1);
 	}
-
-//	/* Create token for AVID */
-//	t.code = AVID_T;
-//	for (i = 0; (i < strlen(lexeme)) && (i < VID_LEN); i++)
-//		t.attribute.vid_lex[i] = lexeme[i];
-//
-//	/* Make C-type string */
-//	t.attribute.vid_lex[i] = '\0';
 
 	return t;
 }
@@ -571,7 +563,7 @@ Token aa_func03(char *lexeme) {
 	else t.attribute.vid_offset = st_install(sym_table, lexeme, 'S', line);
 
 	/* Check for successful install */
-	if (t.attribute.str_offset == -1) {
+	if (t.attribute.str_offset == ERR_FAIL1) {
 		printf("Error: The Symbol Table is full - install failed\n");
 		st_store(sym_table);
 		exit(1);
