@@ -110,7 +110,7 @@ Token mlwpar_next_token(Buffer * sc_buf) {
 		c = b_getc(sc_buf);	/* Get the next symbol from the input buffer */
 
 		/* Test for end of source file */
-		if (c == '\0' || c == EOF) {
+		if (c == '\0' || c == 255) {
 			t.code = SEOF_T;
 			return t;
 		}
