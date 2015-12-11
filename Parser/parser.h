@@ -39,7 +39,7 @@ void syn_eh(int);			/* Handle error */
 void syn_printe(void);		/* Print error message */
 void gen_incode(char*);		/* Print result message */
 void program(void);			/* Process program production */
-void opt_statement(void);
+void opt_statements(void);
 void statements(void);
 void statements_p(void);
 void statement(void);
