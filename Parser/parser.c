@@ -292,8 +292,9 @@ void statements_p(void) {
 * Parameters:		None
 * Return value:		None
 *
-* <statement> -> <assignment statement> | <selection statement>
-*	| <iteration statement> | <input statement> | <output statement>
+* <statement> -> 
+*	<assignment statement> | <selection statement> | <iteration statement> 
+*	| <input statement> | <output statement>
 *
 * FIRST(<statement>) = { AVID_T, SVID_T, KW_T(IF), KW_T(USING), KW_T(INPUT), 
 *	KW_T(OUTPUT) }
@@ -339,8 +340,8 @@ void assignment_statement(void) {
 * Parameters:		None
 * Return value:		None
 *
-* <assignment expression> -> AVID = <arithmetic expression> 
-*	| SVID = <string expression>
+* <assignment expression> -> 
+*	AVID = <arithmetic expression> | SVID = <string expression>
 *
 * FIRST(<assignment expression>) = { AVID_T, SVID_T }
 *******************************************************************************/
@@ -349,7 +350,7 @@ void assignment_expression(void) {
 	case AVID_T:
 		arithmetic_expression(); break;
 	case SVID_T:
-		string_expression; break;
+		string_expression(); break;
 	default:
 		syn_printe();
 	}
@@ -364,7 +365,8 @@ void assignment_expression(void) {
 * Parameters:		None
 * Return value:		None
 *
-* <selection statement> -> IF (<conditional expression>)  
+* <selection statement> -> 
+*	IF (<conditional expression>)  
 *	THEN  <opt_statements> 
 *	ELSE { <opt_statements> } ;
 *
@@ -387,8 +389,8 @@ void selection_statement(void) {
 * Parameters:		None
 * Return value:		None
 *
-* <iteration statement> -> USING (<assignment expression> 
-*	<conditional expression> <assignment expression>)
+* <iteration statement> -> 
+*	USING ( <assignment exp> <conditional exp> <assignment exp> )
 *	REPEAT { <opt_statements> };
 *
 * FIRST(<iteration statement>) = { KW_T(USING) }
@@ -524,54 +526,199 @@ void output_statement_p(void) {
 * Purpose:			Parse Platypus arithmetic_expression syntax
 * Author:			Skye Turriff
 * History:			Version 1, 10 December 2015
-* Called functions: 
+* Called functions: unary_arithmetic_exp(), 
+*					additive_arithmetic_exp(), syn_printe()
 * Parameters:		None
 * Return value:		None
 *
-* <arithmetic expression> -> <unary arithmetic expression> 
-*	| <additive arithmetic expression>
+* <arithmetic expression> -> 
+*	<unary arithmetic expression> | <additive arithmetic expression>
 *
 * FIRST(<arithmetic expression>) = { - , + , AVID_T, FPL_T, IL_T, ( }
 *******************************************************************************/
 void arithmetic_expression(void) {
 	switch (lookahead.code) {
 	case ART_OP_T:
-		if (lookahead.attribute.get_int < MULT) {
-			unary_arithmetic_expression(); break;
+		if (lookahead.attribute.get_int == PLUS  
+				|| lookahead.attribute.get_int == MINUS) {
+			unary_arithmetic_exp(); break;
 		}
 	case AVID_T: case FPL_T: case INL_T: case LPR_T:
-		additive_arithmetic_expression(); break;
+		additive_arithmetic_exp(); break;
 	default:
-
+		syn_printe();
 	}
 }
 
-void unary_arithmetic_expression(void) {
-
+/*******************************************************************************
+* Purpose:			Parse Platypus unary_arithmetic_exp syntax
+* Author:			Skye Turriff
+* History:			Version 1, 10 December 2015
+* Called functions: primary_arithmetic_exp(), syn_printe()
+* Parameters:		None
+* Return value:		None
+*
+* <unary arithmetic expression> -> 
+*	- <primary arithmetic expression> | + <primary arithmetic expression>
+*
+* FIRST(<unary arithmetic exp>) = { - , + }
+*******************************************************************************/
+void unary_arithmetic_exp(void) {
+	if (lookahead.attribute.get_int == PLUS 
+			|| lookahead.attribute.get_int == MINUS)
+		primary_arithmetic_exp();
+	else syn_printe();
 }
 
-void additive_arithmetic_expression(void) {
-
+/*******************************************************************************
+* Purpose:			Parse Platypus additive_arithmetic_exp syntax
+* Author:			Skye Turriff
+* History:			Version 1, 10 December 2015
+* Called functions:multiplicative_arithmetic_exp(), 
+*					additive_arithmetic_exp_p(), gen_incode()
+* Parameters:		None
+* Return value:		None
+*
+* <additive arithmetic expression> -> 
+*	<multiplicative arithmetic expression><additive arithmetic expression’>
+*
+* FIRST(<additive arithmetic exp>) = { AVID_T, FPL_T, IL_T, ( }
+*******************************************************************************/
+void additive_arithmetic_exp(void) {
+	multiplicative_arithmetic_exp(); additive_arithmetic_exp_p();
+	gen_incode("PLATY: Additive arithmetic expression parsed");
 }
 
-void additive_arithmetic_expression_p(void) {
+/*******************************************************************************
+* Purpose:			Parse Platypus additive_arithmetic_exp_p syntax
+* Author:			Skye Turriff
+* History:			Version 1, 11 December 2015
+* Called functions: match(),multiplicative_arithmetic_exp(),
+*					additive_arithmetic_exp(), gen_incode()
+* Parameters:		None
+* Return value:		None
+*
+* <additive arithmetic expression’> -> 
+*	+ <multiplicative arithmetic expression><additive arithmetic expression’>
+*	| - <multiplicative arithmetic expression><additive arithmetic expression’>
+*	| e
+*
+* FIRST(<additive arithmetic exp’>) = { + , - , e }
+*******************************************************************************/
+void additive_arithmetic_exp_p(void) {
 
+	/*THIS AND OTHER SIMILAR FUNCTIONS: checking attribute code good enough?*/
+
+	switch (lookahead.attribute.get_int) {	
+	case  PLUS:
+		match(ART_OP_T, PLUS);multiplicative_arithmetic_exp();
+		additive_arithmetic_exp_p(); break;
+		break;
+	case MINUS:
+		match(ART_OP_T, MINUS);multiplicative_arithmetic_exp();
+		additive_arithmetic_exp_p(); break;
+		break;
+	default:
+		gen_incode("PLATY: Additive arithmetic expression p parsed");
+	}
 }
 
-void multiplicative_arithmetic_expression(void) {
-
+/*******************************************************************************
+* Purpose:			Parse Platypus multiplicative_arithmetic_exp syntax
+* Author:			Skye Turriff
+* History:			Version 1, 11 December 2015
+* Called functions: primary_arithmetic_exp(), multiplicative_arithmetic_exp_p(),
+*					gen_incode()
+* Parameters:		None
+* Return value:		None
+*
+* <multiplicative arithmetic expression> -> 
+*	<primary arithmetic expression><multiplicative arithmetic expression’>
+*
+* FIRST(<multiplicative arithmetic exp>) = { AVID_T, FPL_T, IL_T, ( }
+*******************************************************************************/
+void multiplicative_arithmetic_exp(void) {
+	primary_arithmetic_exp(); multiplicative_arithmetic_exp_p();
+	gen_incode("PLATY: Multiplicative arithmetic expression parsed");
 }
 
-void multiplicative_arithmetic_expression_p(void) {
-
+/*******************************************************************************
+* Purpose:			Parse Platypus multiplicative_arithmetic_exp_p syntax
+* Author:			Skye Turriff
+* History:			Version 1, 11 December 2015
+* Called functions: match(), primary_arithmetic_exp(), 
+*					multiplicative_arithmetic_exp_p(), gen_incode()
+* Parameters:		None
+* Return value:		None
+*
+* <multiplicative arithmetic expression’> ->
+*	* <primary arithmetic expression><multiplicative arithmetic expression’>
+*   | / <primary arithmetic expression><multiplicative arithmetic expression’>
+*   | e
+*
+* FIRST(<multiplicative arithmetic exp>) = { * , / , e }
+*******************************************************************************/
+void multiplicative_arithmetic_exp_p(void) {
+	switch (lookahead.attribute.get_int) {
+	case MULT:
+		match(ART_OP_T, MULT); primary_arithmetic_exp();
+		multiplicative_arithmetic_exp_p(); break;
+	case DIV:
+		match(ART_OP_T, DIV); primary_arithmetic_exp();
+		multiplicative_arithmetic_exp_p(); break;
+	default:
+		gen_incode("PLATY: Multiplicative arithmetic expression p parsed");
+	}
 }
 
-void primary_arithmetic_expression(void) {
+/*******************************************************************************
+* Purpose:			Parse Platypus primary_arithmetic_exp syntax
+* Author:			Skye Turriff
+* History:			Version 1, 11 December 2015
+* Called functions: match(), syn_printe(), gen_incode()
+* Parameters:		None
+* Return value:		None
+*
+* <primary arithmetic expression> ->
+*	<arithmetic variable identifier> | <floating-point literal>
+*	| <integer literal> | (<arithmetic expression>)
+*
+* FIRST(<primary arithmetic exp>) = { AVID_T, FPL_T, IL_T, ( }
+*******************************************************************************/
+void primary_arithmetic_exp(void) {
+	switch (lookahead.code) {
+	case AVID_T:
+		match(AVID_T, NO_ATTR); break;
+	case FPL_T:
+		match(FPL_T, NO_ATTR); break;
+	case INL_T:
+		match(INL_T, NO_ATTR); break;
+	case LPR_T:
+		match(LPR_T, NO_ATTR); break;
+	default:
+		syn_printe();
+		return;				/*TRYING THIS METHOD - gen_incode if success*/
+	}						/*ELSE print error and return*/
 
+	gen_incode("PLATY: Primary arithmetic expression parsed");
 }
 
+/*******************************************************************************
+* Purpose:			Parse Platypus string_expression syntax
+* Author:			Skye Turriff
+* History:			Version 1, 11 December 2015
+* Called functions: primary_string_expression(), string_expression_p(),
+*					gen_incode()
+* Parameters:		None
+* Return value:		None
+*
+* <string expression> -> <primary string expression><string expression’>
+*
+* FIRST(<string expression>) = { SVID_T, STR_T }
+*******************************************************************************/
 void string_expression(void) {
-
+	primary_string_expression(); string_expression_p();
+	gen_incode("PLATY: String expression parsed");
 }
 
 void string_expression_p(void) {
@@ -610,10 +757,10 @@ void relation_operator(void) {
 
 }
 
-void primary_a_relational_expression(void) {
+void primary_a_rel_exp(void) {
 
 }
 
-void primary_s_relational_expression(void) {
+void primary_s_rel_exp(void) {
 
 }
