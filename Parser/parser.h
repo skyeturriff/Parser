@@ -9,7 +9,22 @@
 * Purpose:			Preprocessor directives, type declarations and prototypes
 *					necessary for parser implementation as required for CST8152,
 *					Assignment #4, Fall 2015.
-* Function list:	
+* Function list:	parser(), match(), syn_eh(), syn_printe(), gen_incode(),
+*					program(), opt_statements(), statements(), statements_p(),
+*					statement(), assignment_statement(), assignment_expression()
+*					selection_statement(), iteration_statement(),
+*					input_statement(), variable_list(), variable_list_p(),
+*					variable_identifier(), output_statement(), 
+*					output_statement_p(), arithmetic_expression(), 
+*					unary_arithmetic_exp(), additive_arithmetic_exp(), 
+*					additive_arithmetic_exp_p(), multiplicative_arithmetic_exp()
+*					multiplicative_arithmetic_exp_p(), primary_arithmetic_exp(),
+*					string_expression(), string_expression_p(),
+*					primary_string_expression(), conditional_expression(),
+*					logical_or_expression(), logical_or_expression_p(), 
+*					logical_and_expression(), logical_and_expression_p(),
+*					relational_expression(), relational_operator(), 
+*					primary_a_rel_exp(), primary_s_rel_exp()
 *******************************************************************************/
 const int NO_ATTR = -1;
 typedef enum KeywordTableIndex { 

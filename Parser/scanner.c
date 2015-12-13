@@ -489,13 +489,18 @@ int char_class(char c) {
 }
 
 /*******************************************************************************
-* Purpose:
+* Purpose:			Processes token recognized by scanner as keyword or an AVID
 * Author:			Skye Turriff
-* History:
-* Called functions:
-* Parameters:
-* Return value:
-* Algorithm:
+* History:			Version 3, 12 December 2015
+* Called functions:	iskeyword(), strlen(), strcpy(), st_install(), printf(),
+*					st_store(), st_destroy()
+* Parameters:		char* lexeme the recognized lexeme
+* Return value:		On success, the token, on failure, system exit
+* Algorithm:		Check if lexeme is a keyword and return if true. Else,
+*					determine variable datatype, shorten lexeme if necessary,
+*					and send to install function of symbol table. Check for
+*					successful install, return token on success. Else store
+*					symbol table, delete memory, and exit.
 *******************************************************************************/
 Token aa_func02(char *lexeme) {
 	int kwt_index;				/* Index into keywors table */
@@ -531,6 +536,7 @@ Token aa_func02(char *lexeme) {
 	if (t.attribute.str_offset == ERR_FAIL1) {
 		printf("\nError: The Symbol Table is full - install failed.\n\n");
 		st_store(sym_table);
+		st_destroy(sym_table);
 		exit(1);
 	}
 
@@ -538,13 +544,16 @@ Token aa_func02(char *lexeme) {
 }
 
 /*******************************************************************************
-* Purpose:
+* Purpose:			Processes token recognized by scanner as SVID
 * Author:			Skye Turriff
-* History:
-* Called functions:
-* Parameters:
-* Return value:
-* Algorithm:
+* History:			Version 3, 12 December 2015
+* Called functions:	strlen(), strcpy(), st_install(), printf(), st_store(),
+*					st_destroy()
+* Parameters:		char* lexeme the recognized lexeme
+* Return value:		On success, the token, on failure, system exit
+* Algorithm:		Shorten lexeme if necessary, and send to install function
+*					of symbol table. Check for successful install, return token
+*					on success. Else store symbol table, delete memory, and exit
 *******************************************************************************/
 Token aa_func03(char *lexeme) {
 	Token t;
@@ -566,6 +575,7 @@ Token aa_func03(char *lexeme) {
 	if (t.attribute.str_offset == ERR_FAIL1) {
 		printf("Error: The Symbol Table is full - install failed\n");
 		st_store(sym_table);
+		st_destroy(sym_table);
 		exit(1);
 	}
 

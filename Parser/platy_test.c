@@ -66,7 +66,7 @@ int main(void) {
 	}
 
 	/*open source file */
-	if ((fi = fopen("assignment_statement.txt", "r")) == NULL){
+	if ((fi = fopen("using.txt", "r")) == NULL){
 		err_printf("Cannot open file: ");
 		exit(1);
 	}

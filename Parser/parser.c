@@ -7,7 +7,22 @@
 * Date:				7 December 2015
 * Professor:		Sv. Ranev
 * Purpose:			Function definition for protypes declared in parser.h
-* Function list:	
+* Function list:	parser(), match(), syn_eh(), syn_printe(), gen_incode(),
+*					program(), opt_statements(), statements(), statements_p(),
+*					statement(), assignment_statement(), assignment_expression()
+*					selection_statement(), iteration_statement(),
+*					input_statement(), variable_list(), variable_list_p(),
+*					variable_identifier(), output_statement(), 
+*					output_statement_p(), arithmetic_expression(), 
+*					unary_arithmetic_exp(), additive_arithmetic_exp(), 
+*					additive_arithmetic_exp_p(), multiplicative_arithmetic_exp()
+*					multiplicative_arithmetic_exp_p(), primary_arithmetic_exp(),
+*					string_expression(), string_expression_p(),
+*					primary_string_expression(), conditional_expression(),
+*					logical_or_expression(), logical_or_expression_p(), 
+*					logical_and_expression(), logical_and_expression_p(),
+*					relational_expression(), relational_operator(), 
+*					primary_a_rel_exp(), primary_s_rel_exp()
 *******************************************************************************/
 #include <stdlib.h>
 #include "buffer.h"
@@ -16,13 +31,14 @@
 #include "parser.h"
 
 /*******************************************************************************
-* Purpose:			
+* Purpose:			Initialize input buffer storing the input to be parsed, get
+*					first token from input, and begin parsing at production for
+*					start symbol of the grammar
 * Author:			Skye Turriff
 * History:			Version 1, 7 December 2015
-* Called functions:
-* Parameters:		
-* Return value:		
-* Algorithm:		
+* Called functions:	mlwarpar_next_token(), program(), match(), gen_incode()
+* Parameters:		Buffer* the input buffer 
+* Return value:		None
 *******************************************************************************/
 void parser(Buffer* in_buf) {
 	sc_buf = in_buf;
@@ -32,26 +48,32 @@ void parser(Buffer* in_buf) {
 }
 
 /*******************************************************************************
-* Purpose:
+* Purpose:			Match the current input token (lookahead) with the token
+*					the parser expects, according to the grammar
 * Author:			Skye Turriff
 * History:			Version 1, 7 December 2015
-* Called functions:
-* Parameters:
-* Return value:
-* Algorithm:
+* Called functions: syn_eh(), mlwpar_next_token(), syn_printe()
+* Parameters:		The token code expects by the parser, and (if applicable)
+*					the corresponding token attribute expected by the parser
+* Return value:		None
+* Algorithm:		If the required token code does not match the lookahead,
+*					call error handler and return. Else, the token codes match.
+*					If the token requires a matching attribute code (ART_OP_T,
+*					REL_OP_T, LOG_OP_T, and KW_T), check that the current
+*					token's attribute matches the required attribute. If not,
+*					call error handler and return. Else, match is fully 
+*					successful, advance to next lookahead. If next lookahead is
+*					an error token, print it, advance the lookahead once more, 
+*					and increment the record of syntax errors.
 *******************************************************************************/
 void match(int pr_token_code, int pr_token_attribute) {
-	//printf("lookahead token:\t%d\tattribute: %d\n", lookahead.code, 
-	//	lookahead.attribute);
-	//printf("required token code:\t%d\tattribute: %d\n", pr_token_code,
-	//	pr_token_attribute);
-	
 	/* Call error handler if no match */
 	if (lookahead.code != pr_token_code) {
-		syn_eh(pr_token_code); return;
+		syn_eh(pr_token_code); 
+		return;
 	}
 
-	/* Match to SEOF_T, return */
+	/* If match to SEOF_T, no more tokens, so return */
 	if (pr_token_code == SEOF_T) return;
 
 	/* Match attribute if token has one */
@@ -73,13 +95,20 @@ void match(int pr_token_code, int pr_token_attribute) {
 }
 
 /*******************************************************************************
-* Purpose:
+* Purpose:			Implement a simple panic mode error recover when the parser
+*					encounters an incorrect (not expected by grammar) token
 * Author:			Skye Turriff
 * History:			Version 1, 7 December 2015
-* Called functions:
-* Parameters:
-* Return value:
-* Algorithm:
+* Called functions: syn_printe(), exit(), mlwpar_next_token()
+* Parameters:		The token code required by the grammar
+* Return value:		None
+* Algorithm:		Print the error description of the current lookahead (the
+*					error token). Then, advance the lookahead until a token
+*					matching the one required by the grammar is found. If the
+*					end of the input is reached before a matching token found,
+*					the program exits. Else a matching token is found, and if
+*					the match was not SEOF_T, the lookahead is advanced again
+*					so that parsing can resume.
 *******************************************************************************/
 void syn_eh(int sync_token_code) {
 	syn_printe();
@@ -98,13 +127,12 @@ void syn_eh(int sync_token_code) {
 }
 
 /*******************************************************************************
-* Purpose:
-* Author:			Skye Turriff
+* Purpose:			Prints an error message regarding the current lookahead
+* Author:			Svillen Ranev
 * History:			Version 1, 7 December 2015
-* Called functions:
-* Parameters:
-* Return value:
-* Algorithm:
+* Called functions:	printf(), b_setmark()
+* Parameters:		None
+* Return value:		None
 *******************************************************************************/
 void syn_printe(void) {
 	Token t = lookahead;
@@ -174,23 +202,16 @@ void syn_printe(void) {
 }
 
 /*******************************************************************************
-* Purpose:
+* Purpose:			Prints a string message
 * Author:			Skye Turriff
 * History:			Version 1, 7 December 2015
-* Called functions:
-* Parameters:
-* Return value:
-* Algorithm:
+* Called functions:	prinf()
+* Parameters:		char* message the string to print
+* Return value:		None
 *******************************************************************************/
 void gen_incode(char* message) {
 	printf("%s\n", message);
 }
-
-/*******************************************************************************
-*
-*	PRODUCTIONS
-*
-*******************************************************************************/
 
 /*******************************************************************************
 * Purpose:			Parse Platypus program syntax
@@ -227,16 +248,18 @@ void program(void) {
 *******************************************************************************/
 void opt_statements(void) {
 	switch (lookahead.code) {
-	case AVID_T: case SVID_T:
-		statements(); break;
-	case KW_T:
-		if (lookahead.attribute.get_int == IF
-				|| lookahead.attribute.get_int == USING
-				|| lookahead.attribute.get_int == INPUT
-				|| lookahead.attribute.get_int == OUTPUT) {
-			statements(); break;
+	case AVID_T: case SVID_T:		/* Variable identifiers*/
+		statements(); 
+		break;
+	case KW_T:						/* IF, USING, INPUT, or OUTPUT */
+		switch (lookahead.attribute.get_int) {
+		case IF:
+		case USING:
+		case INPUT:
+		case OUTPUT:
+			statements(); return;
 		}
-	default:
+	default:						/* Empty - optional statements */
 		gen_incode("PLATY: Opt_statements parsed");
 	}
 }
@@ -245,7 +268,7 @@ void opt_statements(void) {
 * Purpose:			Parse Platypus statements syntax
 * Author:			Skye Turriff
 * History:			Version 1, 10 December 2015
-* Called functions: statement(), statements_p(), gen_incode()
+* Called functions: statement(), statements_p()
 * Parameters:		None
 * Return value:		None
 *
@@ -256,14 +279,13 @@ void opt_statements(void) {
 *******************************************************************************/
 void statements(void) {
 	statement(); statements_p();
-	//gen_incode("PLATY: Statements parsed");
 }
 
 /*******************************************************************************
 * Purpose:			Parse Platypus statements_p syntax
 * Author:			Skye Turriff
 * History:			Version 1, 10 December 2015
-* Called functions: statement(), statements_p(), gen_incode()
+* Called functions: statement(), statements_p()
 * Parameters:		None
 * Return value:		None
 *
@@ -273,17 +295,19 @@ void statements(void) {
 *	KW_T(INPUT), KW_T(OUTPUT), e}
 *******************************************************************************/
 void statements_p(void) {
-	if (lookahead.code == AVID_T || lookahead.code == SVID_T) {
-		statement(); statements_p();
-		//gen_incode("PLATY: Statements_p parsed");
+	switch (lookahead.code) {
+	case AVID_T: case SVID_T:			/* Variable identifiers*/
+		statement(); statements_p(); 
+		break;
+	case KW_T:							/* IF, USING, INPUT, or OUTPUT */
+		switch (lookahead.attribute.get_int) {
+		case IF:
+		case USING:
+		case INPUT:
+		case OUTPUT:
+			statement(); statements_p(); 
+		}
 	}
-	else if (lookahead.code == KW_T && (lookahead.attribute.get_int == IF
-			|| lookahead.attribute.get_int == USING
-			|| lookahead.attribute.get_int == INPUT
-			|| lookahead.attribute.get_int == OUTPUT)) {
-		statement(); statements_p();
-	}
-	//else gen_incode("PLATY: Statements_p parsed");
 }
 
 /*******************************************************************************
@@ -305,18 +329,18 @@ void statements_p(void) {
 *******************************************************************************/
 void statement(void) {
 	switch (lookahead.code) {
-	case AVID_T: case SVID_T:
+	case AVID_T: case SVID_T:						/* Variable identifier */
 		assignment_statement(); break;
-	case KW_T:
-		switch (lookahead.attribute.get_int) {
-		case IF: selection_statement(); break;
-		case INPUT: input_statement(); break;
-		case OUTPUT: output_statement(); break;
-		case USING: iteration_statement(); break;
-		default: syn_printe();
+	case KW_T:										/* If it's a keyword */
+		switch (lookahead.attribute.get_int) {		/* Must be one of: */
+		case IF: selection_statement(); break;		/* IF statement */
+		case INPUT: input_statement(); break;		/* INPUT statement */
+		case OUTPUT: output_statement(); break;		/* OUTPUT statement */
+		case USING: iteration_statement(); break;	/* USING statement */
+		default: syn_printe();						/* Else it's an error */
 		} break;
 	default:
-		syn_printe();
+		syn_printe();								/* None of above; error */
 	}
 }
 
@@ -341,7 +365,8 @@ void assignment_statement(void) {
 * Purpose:			Parse Platypus assignment_expression syntax
 * Author:			Skye Turriff
 * History:			Version 1, 10 December 2015
-* Called functions: arithmetic_expression(), string_expression(), syn_printe()
+* Called functions: match(), arithmetic_expression(), gen_incode(),
+*					string_expression(), syn_printe()
 * Parameters:		None
 * Return value:		None
 *
@@ -352,17 +377,17 @@ void assignment_statement(void) {
 *******************************************************************************/
 void assignment_expression(void) {
 	switch (lookahead.code) {
-	case AVID_T:
+	case AVID_T:	/* Arithmetic assignment */
 		match(AVID_T, NO_ATTR); match(ASS_OP_T, NO_ATTR);
 		arithmetic_expression(); 
 		gen_incode("PLATY: Assignment expression (arithmetic) parsed");
 		break;
-	case SVID_T:
+	case SVID_T:	/* String assignment */
 		match(SVID_T, NO_ATTR); match(ASS_OP_T, NO_ATTR);
 		string_expression(); 
 		gen_incode("PLATY: Assignment expression (string) parsed");
 		break;
-	default:
+	default:		/* Error token */
 		syn_printe();
 	}
 }
@@ -454,8 +479,7 @@ void variable_list(void) {
 * Purpose:			Parse Platypus variable_list_p syntax
 * Author:			Skye Turriff
 * History:			Version 1, 10 December 2015
-* Called functions: match(), variable_identifier(), variable_list_p(),
-*					gen_incode()
+* Called functions: match(), variable_identifier(), variable_list_p()
 * Parameters:		None
 * Return value:		None
 *
@@ -464,10 +488,12 @@ void variable_list(void) {
 * FIRST(<variable list’>) = { , e }
 *******************************************************************************/
 void variable_list_p(void) {
+
+	/* If lookahead if a comma, must continue to parse list,
+	else empty list or end of list and so do nothing */
 	if (lookahead.code == COM_T) {
 		match(COM_T, NO_ATTR); variable_identifier(); variable_list_p();
 	} 
-	//else gen_incode("PLATY: Variable_list_p parsed");
 }
 
 /*******************************************************************************
@@ -515,7 +541,7 @@ void output_statement(void) {
 * Purpose:			Parse Platypus output_statement_p syntax
 * Author:			Skye Turriff
 * History:			Version 1, 10 December 2015
-* Called functions: variable_list(), string_expression(), gen_incode()
+* Called functions: variable_list(), match(), gen_incode()
 * Parameters:		None
 * Return value:		None
 *
@@ -525,13 +551,13 @@ void output_statement(void) {
 *******************************************************************************/
 void output_statement_p(void) {
 	switch (lookahead.code) {
-	case AVID_T: case SVID_T:
+	case AVID_T: case SVID_T:		/* Output variable list */
 		variable_list();  break;
-	case STR_T:
-		primary_string_expression(); 
+	case STR_T:						/* Output string literal */
+		match(STR_T, NO_ATTR);
 		gen_incode("PLATY: Output list (string literal) parsed"); 
 		break;
-	default:
+	default:						/* Output empty string */
 		gen_incode("PLATY: Output list (empty) parsed");
 	}
 }
@@ -540,8 +566,8 @@ void output_statement_p(void) {
 * Purpose:			Parse Platypus arithmetic_expression syntax
 * Author:			Skye Turriff
 * History:			Version 1, 10 December 2015
-* Called functions: unary_arithmetic_exp(), 
-*					additive_arithmetic_exp(), syn_printe()
+* Called functions: unary_arithmetic_exp(), syn_printe()
+*					additive_arithmetic_exp(), gen_incode()
 * Parameters:		None
 * Return value:		None
 *
@@ -552,17 +578,17 @@ void output_statement_p(void) {
 *******************************************************************************/
 void arithmetic_expression(void) {
 	switch (lookahead.code) {
-	case ART_OP_T:
-		switch (lookahead.attribute.get_int) {
-		case PLUS: case MINUS:
+	case ART_OP_T:									/* If it's arithmetic op */
+		switch (lookahead.attribute.get_int) {		/* Must be one of: */
+		case PLUS: case MINUS:						/* + or - */
 			unary_arithmetic_exp(); 
 			break;
-		default:
-			syn_printe(); 
+		default:									/* Else it's an error */
+			syn_printe();							
 			return;
 		} 
 		break;
-	case AVID_T: case FPL_T: case INL_T: case LPR_T:
+	case AVID_T: case FPL_T: case INL_T: case LPR_T:	
 		additive_arithmetic_exp(); 
 		break;
 	default:
@@ -588,16 +614,17 @@ void arithmetic_expression(void) {
 *******************************************************************************/
 void unary_arithmetic_exp(void) {
 	switch (lookahead.attribute.get_int) {
-	case PLUS:
-		match(ART_OP_T, PLUS); primary_arithmetic_exp(); 
+	case PLUS:		
+		match(ART_OP_T, PLUS); //primary_arithmetic_exp(); 
 		break;
-	case MINUS:
-		match(ART_OP_T, MINUS); primary_arithmetic_exp();
+	case MINUS:		
+		match(ART_OP_T, MINUS); //primary_arithmetic_exp();
 		break;
 	default:
 		syn_printe(); return;
 	}
 
+	primary_arithmetic_exp();
 	gen_incode("PLATY: Unary arithmetic expression parsed");
 }
 
@@ -605,8 +632,8 @@ void unary_arithmetic_exp(void) {
 * Purpose:			Parse Platypus additive_arithmetic_exp syntax
 * Author:			Skye Turriff
 * History:			Version 1, 10 December 2015
-* Called functions:multiplicative_arithmetic_exp(), 
-*					additive_arithmetic_exp_p(), gen_incode()
+* Called functions: multiplicative_arithmetic_exp(), 
+*					additive_arithmetic_exp_p()
 * Parameters:		None
 * Return value:		None
 *
@@ -617,16 +644,13 @@ void unary_arithmetic_exp(void) {
 *******************************************************************************/
 void additive_arithmetic_exp(void) {
 	multiplicative_arithmetic_exp(); additive_arithmetic_exp_p();
-
-	/*Need to move this to add_arith_p after it calls mult_arith_exp*/
-	//gen_incode("PLATY: Additive arithmetic expression parsed");
 }
 
 /*******************************************************************************
 * Purpose:			Parse Platypus additive_arithmetic_exp_p syntax
 * Author:			Skye Turriff
 * History:			Version 1, 11 December 2015
-* Called functions: match(),multiplicative_arithmetic_exp(),
+* Called functions: match(), multiplicative_arithmetic_exp(),
 *					additive_arithmetic_exp(), gen_incode()
 * Parameters:		None
 * Return value:		None
@@ -641,41 +665,22 @@ void additive_arithmetic_exp(void) {
 void additive_arithmetic_exp_p(void) {
 
 	if (lookahead.code == ART_OP_T && lookahead.attribute.get_int == PLUS) {
-		match(ART_OP_T, PLUS); 
-		multiplicative_arithmetic_exp();
-		gen_incode("PLATY: Additive arithmetic expression parsed");
+		match(ART_OP_T, PLUS); multiplicative_arithmetic_exp();
 		additive_arithmetic_exp_p();
+		gen_incode("PLATY: Additive arithmetic expression parsed");
 	} 
 	else if (lookahead.code == ART_OP_T && lookahead.attribute.get_int == MINUS) {
-		match(ART_OP_T, MINUS); 
-		multiplicative_arithmetic_exp();
-		gen_incode("PLATY: Additive arithmetic expression parsed");
+		match(ART_OP_T, MINUS); multiplicative_arithmetic_exp();
 		additive_arithmetic_exp_p();
+		gen_incode("PLATY: Additive arithmetic expression parsed");
 	}
-	//else gen_incode("PLATY: Additive arithmetic expression parsed");
-
-	/*THIS AND OTHER SIMILAR FUNCTIONS: checking attribute code good enough?
-	switch (lookahead.attribute.get_int) {	
-	case  PLUS:
-		match(ART_OP_T, PLUS);multiplicative_arithmetic_exp();
-		additive_arithmetic_exp_p(); break;
-		break;
-	case MINUS:
-		match(ART_OP_T, MINUS);multiplicative_arithmetic_exp();
-		additive_arithmetic_exp_p(); break;
-		break;
-	default:
-		gen_incode("PLATY: Additive arithmetic expression p parsed");
-	}
-	*/
 }
 
 /*******************************************************************************
 * Purpose:			Parse Platypus multiplicative_arithmetic_exp syntax
 * Author:			Skye Turriff
 * History:			Version 1, 11 December 2015
-* Called functions: primary_arithmetic_exp(), multiplicative_arithmetic_exp_p(),
-*					gen_incode()
+* Called functions: primary_arithmetic_exp(), multiplicative_arithmetic_exp_p()
 * Parameters:		None
 * Return value:		None
 *
@@ -686,7 +691,6 @@ void additive_arithmetic_exp_p(void) {
 *******************************************************************************/
 void multiplicative_arithmetic_exp(void) {
 	primary_arithmetic_exp(); multiplicative_arithmetic_exp_p();
-	//gen_incode("PLATY: Multiplicative arithmetic expression parsed");
 }
 
 /*******************************************************************************
@@ -708,38 +712,22 @@ void multiplicative_arithmetic_exp(void) {
 void multiplicative_arithmetic_exp_p(void) {
 
 	if (lookahead.code == ART_OP_T && lookahead.attribute.get_int == MULT) {
-		match(ART_OP_T, MULT);
-		primary_arithmetic_exp();
-		gen_incode("PLATY: Multiplicative arithmetic expression parsed");
+		match(ART_OP_T, MULT); primary_arithmetic_exp();
 		multiplicative_arithmetic_exp_p();
+		gen_incode("PLATY: Multiplicative arithmetic expression parsed");
 	}
 	else if (lookahead.code == ART_OP_T && lookahead.attribute.get_int == DIV) {
-		match(ART_OP_T, DIV);
-		primary_arithmetic_exp();
-		gen_incode("PLATY: Multiplicative arithmetic expression parsed");
-		multiplicative_arithmetic_exp_p();
-	}
-	//else gen_incode("PLATY: Multiplicative arithmetic expression parsed");
-
-	/*
-	switch (lookahead.attribute.get_int) {
-	case MULT:
-		match(ART_OP_T, MULT); primary_arithmetic_exp();
-		multiplicative_arithmetic_exp_p(); break;
-	case DIV:
 		match(ART_OP_T, DIV); primary_arithmetic_exp();
-		multiplicative_arithmetic_exp_p(); break;
-	default:
-		gen_incode("PLATY: Multiplicative arithmetic expression p parsed");
+		multiplicative_arithmetic_exp_p();
+		gen_incode("PLATY: Multiplicative arithmetic expression parsed");
 	}
-	*/
 }
 
 /*******************************************************************************
 * Purpose:			Parse Platypus primary_arithmetic_exp syntax
 * Author:			Skye Turriff
 * History:			Version 1, 11 December 2015
-* Called functions: match(), syn_printe(), gen_incode()
+* Called functions: match(), arithmetic_expression(), syn_printe(), gen_incode()
 * Parameters:		None
 * Return value:		None
 *
@@ -762,8 +750,8 @@ void primary_arithmetic_exp(void) {
 		break;
 	default:
 		syn_printe();
-		return;				/*TRYING THIS METHOD - gen_incode if success*/
-	}						/*ELSE print error and return*/
+		return;
+	}
 
 	gen_incode("PLATY: Primary arithmetic expression parsed");
 }
@@ -782,10 +770,7 @@ void primary_arithmetic_exp(void) {
 * FIRST(<string expression>) = { SVID_T, STR_T }
 *******************************************************************************/
 void string_expression(void) {
-	primary_string_expression(); 
-	gen_incode("PLATY: Primary string expression parsed");
-	string_expression_p();
-	
+	primary_string_expression(); string_expression_p();
 	gen_incode("PLATY: String expression parsed");
 }
 
@@ -793,8 +778,7 @@ void string_expression(void) {
 * Purpose:			Parse Platypus string_expression_p syntax
 * Author:			Skye Turriff
 * History:			Version 1, 11 December 2015
-* Called functions: match(), primary_string_expression(), string_expression_p(),
-*					gen_incode()
+* Called functions: match(), primary_string_expression(), string_expression_p()
 * Parameters:		None
 * Return value:		None
 *
@@ -804,16 +788,11 @@ void string_expression(void) {
 * FIRST(<string expression’>) = { # , e }
 *******************************************************************************/
 void string_expression_p(void) {
+	/* If token is #, continue to catenate string */
 	if (lookahead.code == SCC_OP_T) {
-
-		match(SCC_OP_T, NO_ATTR); 
-		primary_string_expression();
-		
-		gen_incode("PLATY: Primary string expression parsed");
-		
+		match(SCC_OP_T, NO_ATTR); primary_string_expression();
 		string_expression_p();
 	}
-	//else gen_incode("PLATY: String expression p parsed");
 }
 
 /*******************************************************************************
@@ -840,7 +819,7 @@ void primary_string_expression(void) {
 		return;
 	}
 
-	//gen_incode("PLATY: Primary string expression parsed");
+	gen_incode("PLATY: Primary string expression parsed");
 }
 
 /*******************************************************************************
@@ -857,7 +836,7 @@ void primary_string_expression(void) {
 *******************************************************************************/
 void conditional_expression(void) {
 	logical_or_expression(); 
-	gen_incode("PLATY: conditional expression parsed");
+	gen_incode("PLATY: Conditional expression parsed");
 }
 
 /*******************************************************************************
@@ -874,9 +853,6 @@ void conditional_expression(void) {
 *******************************************************************************/
 void logical_or_expression(void) {
 	logical_and_expression(); logical_or_expression_p();
-
-	/*May need to move to condition_expression?*/
-	//gen_incode("PLATY: Logical OR expression parsed");
 }
 
 /*******************************************************************************
@@ -894,23 +870,19 @@ void logical_or_expression(void) {
 * FIRST(<logical or exp’>) = { LOG_OP_T(.OR.), e }
 *******************************************************************************/
 void logical_or_expression_p(void) {
-
-	/*CHECKING ATTRIBUTE ENOUGH HERE? OR MUST VERIFY TOKEN CODE?*/
-
+	/* Parse .OR. expression (recursively) if there is one, else do nothing */
 	if (lookahead.code == LOG_OP_T && lookahead.attribute.get_int == OR) {
 		match(LOG_OP_T, OR); logical_and_expression();
-		gen_incode("PLATY: Logical OR expression parsed");
-		//gen_incode("PLATY: Logical AND expression parsed");
 		logical_or_expression_p();
+		gen_incode("PLATY: Logical OR expression parsed");
 	}
-	//else gen_incode("PLATY: Logical OR expression p parsed");
 }
 
 /*******************************************************************************
 * Purpose:			Parse Platypus logical_and_expression syntax
 * Author:			Skye Turriff
 * History:			Version 1, 11 December 2015
-* Called functions: 
+* Called functions: relational_expression(), logical_and_expression_p()
 * Parameters:		None
 * Return value:		None
 *
@@ -920,7 +892,6 @@ void logical_or_expression_p(void) {
 *******************************************************************************/
 void logical_and_expression(void) {
 	relational_expression(); logical_and_expression_p();
-	//gen_incode("PLATY: Logical AND expression parsed");
 }
 
 /*******************************************************************************
@@ -938,18 +909,12 @@ void logical_and_expression(void) {
 * FIRST(<logical and exp’>)	= { LOG_OP_T(.AND.), e }
 *******************************************************************************/
 void logical_and_expression_p(void) {
-
-	/*CHECKING ATTRIBUTE ENOUGH HERE? OR MUST VERIFY TOKEN CODE?*/
-
+	/* Parse .AND. expression (recursively) if there is one, else do nothing */
 	if (lookahead.code == LOG_OP_T && lookahead.attribute.get_int == AND) {
 		match(LOG_OP_T, AND); relational_expression();
-
-		//THIS SHOULD GO HERE?????
-		gen_incode("PLATY: Logical AND expression parsed");
-
 		logical_and_expression_p();
+		gen_incode("PLATY: Logical AND expression parsed");
 	}
-	//else gen_incode("PLATY: Logical AND expression p parsed");
 }
 
 /*******************************************************************************
@@ -989,7 +954,7 @@ void relational_expression(void) {
 * Purpose:			Parse Platypus relational_operator syntax
 * Author:			Skye Turriff
 * History:			Version 1, 11 December 2015
-* Called functions: match(), syn_printe(), gen_incode()
+* Called functions: match(), syn_printe()
 * Parameters:		None
 * Return value:		None
 *
@@ -998,9 +963,7 @@ void relational_expression(void) {
 * FIRST(<relational operator>) = { == , <> , < , > }
 *******************************************************************************/
 void relational_operator(void) {
-
 	if (lookahead.code == REL_OP_T) {
-
 		switch (lookahead.attribute.get_int) {
 		case EQ:
 			match(REL_OP_T, EQ); break;
@@ -1011,12 +974,9 @@ void relational_operator(void) {
 		case GT:
 			match(REL_OP_T, GT); break;
 		default:
-			syn_printe(); return;
+			syn_printe();
 		}
-
 	}
-
-	//gen_incode("PLATY: Relational operator parsed");
 }
 
 /*******************************************************************************

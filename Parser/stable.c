@@ -31,7 +31,6 @@
 /* Static(local) functions */
 static void st_setsize(void);
 static void st_incoffset(void);
-static int comparelex(const void*, const void*);
 
 /*******************************************************************************
 * Purpose:			To allocate memory for one SymbolTableDescriptor (STD) and
@@ -156,7 +155,7 @@ int st_install(STD sym_table, char* lexeme, char type, int line) {
 	}
 	else if (type == 'F') {	/* float */
 		sym_table.pstvr[sym_table.st_offset].status_field |= DT_FPL;
-		sym_table.pstvr[sym_table.st_offset].i_value.fpl_val = 0;
+		sym_table.pstvr[sym_table.st_offset].i_value.fpl_val = 0.0F;
 	}
 	else { /* string */
 		sym_table.pstvr[sym_table.st_offset].status_field |= DT_STR;
@@ -196,28 +195,33 @@ int st_lookup(STD sym_table, char* lexeme) {
 /*******************************************************************************
 * Purpose:			Updates the data type of the STVR specified by vid_offset
 * Author:			Skye Turriff
-* History:			Version 1, 20 November 2015
+* History:			Version 2, 12 December 2015
 * Called functions:	None
 * Parameters:		STD sym_table with a valid st_size (>0)
 *					int vid_offset into STVR array of the entry to update
 *					char v_type to update the entry with, one of 'F' for float,
 *					or 'I' for integer				
 * Return value:		On success, the offset of the entry updated, -1 on failure,
-*					or -2 on bad parameters.
-* Algorithm:		If invalid symbol table or parameters, return -2. If entry
-*					is a string, or has already been updated, return -1. Else,
-*					set status_field bits 0, 1 and 2 to 0. If updating type to 
-*					float turn on bit 1. Else turn on bit 2 to update to int.
-*					Set update flag. Return offset of updated entry.
+*					or -2 on invalid symbol table.
+* Algorithm:		If invalid symbol table return -2, if invalid parameters
+*					return -1. If entry is a string, or has already been 
+*					updated, return -1. Else, set status_field bits 0, 1 and 2
+*					to 0. If updating type to float turn on bit 1. Else turn on
+*					bit 2 to update to int. Set update flag. Return offset of
+*					updated entry.
 *******************************************************************************/
 int st_update_type(STD sym_table, int vid_offset, char v_type) {
 	/* Check for valid symbol table */
 	if (sym_table.st_size == 0)
 		return ERR_FAIL2;
 
+	/* Check for invalid vid_offset */
+	if (vid_offset < 0 || vid_offset >= sym_table.st_offset)
+		return ERR_FAIL1;
+
 	/* Can't update type more than once or from/to string */
 	if ((sym_table.pstvr[vid_offset].status_field & CHK_FLG)
-		|| (st_get_type(sym_table, vid_offset) == 'S')
+		//|| (st_get_type(sym_table, vid_offset) == 'S')
 		|| (v_type == 'S'))
 		return ERR_FAIL1;
 
@@ -232,17 +236,21 @@ int st_update_type(STD sym_table, int vid_offset, char v_type) {
 /*******************************************************************************
 * Purpose:			Updates the i_value of the variable specified by vid_offset
 * Author:			Skye Turriff
-* History:			Version 1, 20 November 2015
-* Called functions:	
+* History:			Version 2, 12 December 2015
+* Called functions:	None
 * Parameters:		STD sym_table struct with valid size (>0)
 *					int vid_offset of entry in STVR array
 *					InitialValue i_value to update to
-* Return value:		If bad parameters returns -1, On success returns vid_offset
+* Return value:		If bad parameters returns -1, or -2 on invalid symbol table.
+*					On success returns vid_offset
 *******************************************************************************/
 int st_update_value(STD sym_table, int vid_offset, InitialValue i_value) {
-	/* Check for valid symbol table and i_value
-	(must be 0 or -1 in this implementation) */
+	/* Check for valid symbol table  */
 	if (sym_table.st_size == 0)
+		return ERR_FAIL2;
+
+	/* Check for valid vid_offset */
+	if (vid_offset < 0 || vid_offset >= sym_table.st_offset)
 		return ERR_FAIL1;
 
 	sym_table.pstvr[vid_offset].i_value = i_value;
@@ -299,7 +307,7 @@ void st_destroy(STD sym_table) {
 * Purpose:			Prints the contents of the symbol table to standard output
 * Author:			Skye Turriff
 * History:			Version 1, 21 November 2015
-* Called functions:
+* Called functions: printf()
 * Parameters:		STD sym_table struct with valid st_size (>0)
 * Return value:		On success, the number of records printed, 
 *******************************************************************************/
@@ -358,46 +366,6 @@ int st_store(STD sym_table) {
 }
 
 /*******************************************************************************
-* Purpose:			This function is not currently implemented
-* Author:			Skye Turriff
-* History:			Version 1, 21 November 2015
-* Called functions:	malloc(), calloc(), strlen(), sizeof(), printf(), 
-*					comparelex(), qsort()
-* Parameters:		STD sym_table struct and char s_order, the order to sort
-* Return value:		zero in this implementation
-* Algorithm:		TBD
-* Notes:			Will generate warnings for unreferenced parameters
-*******************************************************************************/
-int st_sort(STD sym_table, char s_order) {
-	/*
-	char** lexemes;
-	int i;
-
-	lexemes = (char**)malloc(sym_table.st_offset*sizeof(char*));
-
-	for (i = 0; i < sym_table.st_offset; i++) {
-		lexemes[i] = (char*)calloc(strlen((sym_table.pstvr[i].plex) + 1), sizeof(char));
-		strcpy(lexemes[i], sym_table.pstvr[i].plex);
-	}
-
-	printf("Before sorting:\n");
-	for (i = 0; i < sym_table.st_offset; i++)
-		printf("%s\n", lexemes[i]);
-
-	for (i = 0; i < sym_table.st_offset - 1; i++)
-		comparelex(lexemes[i], lexemes[i+1]);
-
-	qsort(lexemes, sym_table.st_offset, sizeof(char*), comparelex);
-
-	printf("After sorting:\n");
-	for (i = 0; i < sym_table.st_offset; i++)
-		printf("%s\n", lexemes[i]);
-	*/
-
-	return 0;
-}
-
-/*******************************************************************************
 * Purpose:			Set the size of the global sym_table to 0
 * Author:			Skye Turriff
 * History:			Version 1, 20 November 2015
@@ -412,42 +380,11 @@ static void st_setsize(void) {
 /*******************************************************************************
 * Purpose:			Increments the st_offset member of the global sym_table
 * Author:			Skye Turriff
-* History:			Version 1, 20 November 2015
+* History:			Version 2, 12 December 2015
 * Called functions:	None
 * Parameters:		None
 * Return value:		None
 *******************************************************************************/
 static void st_incoffset(void) {
-	sym_table.st_offset++;
-}
-
-/*******************************************************************************
-* Purpose:			This function is not currently implemented. 
-* Author:			Skye Turriff
-* History:			Version 1, 21 November 2015
-* Called functions: None
-* Parameters:		lex1 and lex2, strings to be compared
-* Return value:		Zero in this implementation
-* Algorithm:		TBD
-* Notes:			Will generate warnings for unreferenced parameters
-*******************************************************************************/
-int comparelex(const void* lex1, const void* lex2) {
-	/*
-	char* a = (char*)lex1;
-	char* b = (char*)lex2;
-
-	while (*a) {
-		if (*a == *b) {
-			a++;
-			b++;
-		}
-		else if ((*b == '\0') || (*b < *a)) return 1;
-		else if (*a < *b) return -1;
-	}
-
-	if (*b != '\0') return -1;
-	else return 0;
-	*/
-
-	return 0;
+	++sym_table.st_offset;
 }
